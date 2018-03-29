@@ -68,7 +68,6 @@ test/*.xml
 # Temporary files that allow build containers/VMs work without git
 GIT_VERSION
 envoy/SOURCE_VERSION
-envoy/Dockerfile.builder
 
 # To run Envoy tests under gdb do "cd envoy && make debug && ln -s bazel-envoy/external external"
 envoy/external

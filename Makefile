@@ -130,7 +130,6 @@ docker-image-runtime:
 	@echo "docker push cilium/cilium-runtime:$(UTC_DATE)"
 
 docker-image-builder:
-	cp contrib/packaging/docker/Dockerfile.builder envoy/.
 	cd envoy && docker build -t "cilium/cilium-builder:$(UTC_DATE)" -f Dockerfile.builder .
 	rm envoy/Dockerfile.builder
 	@echo "Update Dockerfile with the new tag and push like this when ready:"
