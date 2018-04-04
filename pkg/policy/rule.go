@@ -57,6 +57,11 @@ func (policy *L4Filter) addEndpoints(endpoints []api.EndpointSelector) bool {
 	return false
 }
 
+// mergeL4IngressPort merges all rules which share the same port & protocol that
+// select a given set of endpoints. It updates the L4Filter mapped to by the specified
+// port and protocol with the contents of the provided PortRule. If the rule
+// being merged has conflicting L7 rules with those already in the provided
+// L4PolicyMap for the specified port-protocol tuple, returns an error.
 func mergeL4IngressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r api.PortRule, p api.PortProtocol,
 	proto api.L4Proto, ruleLabels labels.LabelArray, resMap L4PolicyMap) (int, error) {
 
@@ -66,6 +71,30 @@ func mergeL4IngressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r 
 		resMap[key] = CreateL4IngressFilter(endpoints, r, p, proto, ruleLabels)
 		return 1, nil
 	}
+
+	if filter.addEndpoints(endpoints) && r.NumRules() == 0 {
+		// skip this policy as it is already covered and it does not contain L7 rules
+		return 1, nil
+	}
+
+	// Rule we are merging with existing L4Filter has no L7 rules, but applies
+	// to the same L4 port-protocol tuple, which *does* have L7 rules. If a rule
+	// applying to the same port/protocol has no L7 rules, then that equates to
+	// allowing all on L7, so just remove existing L7-related metadata for this
+	// port-proto tuple. Or, if we already have a filter which allows all L4, yet
+	// are trying to add a rule which restricts on L7, do not restrict on L7.
+	if r.NumRules() == 0 || filter.L7Parser == "" {
+		for k := range filter.L7RulesPerEp {
+			delete(filter.L7RulesPerEp, k)
+		}
+		filter.L7Parser = ""
+		filter.DerivedFromRules = append(filter.DerivedFromRules, ruleLabels)
+		resMap[key] = filter
+		return 1, nil
+	}
+
+	// Create a new L4Filter for merging with the filter which is already in
+	// the policy map.
 	l4Filter := CreateL4IngressFilter(endpoints, r, p, proto, ruleLabels)
 	if l4Filter.L7Parser != "" {
 		if filter.L7Parser == "" {
@@ -74,11 +103,6 @@ func mergeL4IngressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r 
 			ctx.PolicyTrace("   Merge conflict: mismatching parsers %s/%s\n", l4Filter.L7Parser, filter.L7Parser)
 			return 0, fmt.Errorf("Cannot merge conflicting L7 parsers (%s/%s)", l4Filter.L7Parser, filter.L7Parser)
 		}
-	}
-
-	if filter.addEndpoints(endpoints) && r.NumRules() == 0 {
-		// skip this policy as it is already covered and it does not contain L7 rules
-		return 1, nil
 	}
 
 	for hash, newL7Rules := range l4Filter.L7RulesPerEp {
@@ -447,6 +471,11 @@ func mergeL4Egress(ctx *SearchContext, rule api.EgressRule, ruleLabels labels.La
 	return found, nil
 }
 
+// mergeL4EgressPort merges all rules which share the same port & protocol that
+// select a given set of endpoints. It updates the L4Filter mapped to by the specified
+// port and protocol with the contents of the provided PortRule. If the rule
+// being merged has conflicting L7 rules with those already in the provided
+// L4PolicyMap for the specified port-protocol tuple, returns an error.
 func mergeL4EgressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r api.PortRule, p api.PortProtocol,
 	proto api.L4Proto, ruleLabels labels.LabelArray, resMap L4PolicyMap) (int, error) {
 
@@ -456,6 +485,30 @@ func mergeL4EgressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r a
 		resMap[key] = CreateL4EgressFilter(endpoints, r, p, proto, ruleLabels)
 		return 1, nil
 	}
+
+	if filter.addEndpoints(endpoints) && r.NumRules() == 0 {
+		// skip this policy as it is already covered and it does not contain L7 rules
+		return 1, nil
+	}
+
+	// Rule we are merging with existing L4Filter has no L7 rules, but applies
+	// to the same L4 port-protocol tuple, which *does* have L7 rules. If a rule
+	// applying to the same port/protocol has no L7 rules, then that equates to
+	// allowing all on L7, so just remove existing L7-related metadata for this
+	// port-proto tuple. Or, if we already have a filter which allows all L4, yet
+	// are trying to add a rule which restricts on L7, do not restrict on L7.
+	if r.NumRules() == 0 || filter.L7Parser == "" {
+		for k := range filter.L7RulesPerEp {
+			delete(filter.L7RulesPerEp, k)
+		}
+		filter.L7Parser = ""
+		filter.DerivedFromRules = append(filter.DerivedFromRules, ruleLabels)
+		resMap[key] = filter
+		return 1, nil
+	}
+
+	// Create a new L4Filter for merging with the filter which is already in
+	// the policy map.
 	l4Filter := CreateL4EgressFilter(endpoints, r, p, proto, ruleLabels)
 	if l4Filter.L7Parser != "" {
 		if filter.L7Parser == "" {
@@ -464,11 +517,6 @@ func mergeL4EgressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r a
 			ctx.PolicyTrace("   Merge conflict: mismatching parsers %s/%s\n", l4Filter.L7Parser, filter.L7Parser)
 			return 0, fmt.Errorf("Cannot merge conflicting L7 parsers (%s/%s)", l4Filter.L7Parser, filter.L7Parser)
 		}
-	}
-
-	if filter.addEndpoints(endpoints) && r.NumRules() == 0 {
-		// skip this policy as it is already covered and it does not contain L7 rules
-		return 1, nil
 	}
 
 	for hash, newL7Rules := range l4Filter.L7RulesPerEp {
