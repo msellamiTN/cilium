@@ -28,6 +28,7 @@ import (
 	"github.com/cilium/cilium/pkg/pipeexec"
 
 	"golang.org/x/sys/unix"
+	"time"
 )
 
 var (
@@ -160,15 +161,20 @@ func mountFS() error {
 	if uint32(fsdata.Type) != magic {
 		log.WithField(logfields.Path, mapRoot).Warningf("BPF root is not a BPF filesystem (%#x != %#x)",
 			uint32(fsdata.Type), magic)
+		log.Warning("sleeping for 10 seconds to allow for handling of BPF filesystem issues")
+		time.Sleep(time.Second * 10)
 	}
 
 	mountMutex.Lock()
+
 	for _, m := range delayedOpens {
 		_, err = m.OpenOrCreate()
 		if err != nil {
 			log.Errorf("error opening map after bpffs was mounted %s: %s", m.name, err)
 		}
 	}
+
+	log.Debugf("done trying to open or create all maps that were opened after bpffs mounted")
 
 	mounted = true
 	delayedOpens = []*Map{}
