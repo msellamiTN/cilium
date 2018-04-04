@@ -88,7 +88,8 @@ type L4Filter struct {
 	// Endpoints limits the labels for allowing traffic (to / from). If
 	// Endpoints is empty, then it selects all endpoints.
 	Endpoints []api.EndpointSelector `json:"-"`
-	// L7Parser specifies the L7 protocol parser (optional)
+	// L7Parser specifies the L7 protocol parser (optional). If specified as
+	// an empty string, then means that no L7 forwarding is performed to the proxy.
 	L7Parser L7ParserType `json:"-"`
 	// L7RulesPerEp is a list of L7 rules per endpoint passed to the L7 proxy (optional)
 	L7RulesPerEp L7DataMap `json:"l7-rules,omitempty"`
