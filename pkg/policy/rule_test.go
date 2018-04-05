@@ -1750,6 +1750,7 @@ func (ds *PolicyTestSuite) TestL4WildcardMerge(c *C) {
 }
 
 func (ds *PolicyTestSuite) TestL3L4L7Merge(c *C) {
+
 	// First rule allows ingress from all endpoints to port 80 only on
 	// GET to "/". However, second rule allows all traffic on port 80 only to a
 	// specific endpoint. When these rules are merged, it equates to allowing
@@ -1796,6 +1797,51 @@ func (ds *PolicyTestSuite) TestL3L4L7Merge(c *C) {
 
 	c.Assert(len(filter.Endpoints), Equals, 0)
 
-	c.Assert(filter.L7Parser, Equals, ParserTypeNone)
-	c.Assert(len(filter.L7RulesPerEp), Equals, 0)
+	c.Assert(filter.L7Parser, Equals, ParserTypeHTTP)
+	c.Assert(len(filter.L7RulesPerEp), Equals, 1)
+
+	repo = parseAndAddRules(c, api.Rules{&api.Rule{
+		EndpointSelector: endpointSelectorA,
+		Ingress: []api.IngressRule{
+			{
+				FromEndpoints: []api.EndpointSelector{endpointSelectorC},
+				ToPorts: []api.PortRule{{
+					Ports: []api.PortProtocol{
+						{Port: "80", Protocol: api.ProtoTCP},
+					},
+				}},
+			},
+			{
+				ToPorts: []api.PortRule{{
+					Ports: []api.PortProtocol{
+						{Port: "80", Protocol: api.ProtoTCP},
+					},
+					Rules: &api.L7Rules{
+						HTTP: []api.PortRuleHTTP{
+							{Method: "GET", Path: "/"},
+						},
+					},
+				}},
+			},
+		},
+	}})
+
+	buffer = new(bytes.Buffer)
+	ctx = SearchContext{To: labelsA, Trace: TRACE_VERBOSE}
+	ctx.Logging = logging.NewLogBackend(buffer, "", 0)
+
+	l4IngressPolicy, err = repo.ResolveL4IngressPolicy(&ctx)
+	c.Assert(err, IsNil)
+
+	c.Log(buffer)
+
+	filter, ok = (*l4IngressPolicy)["80/TCP"]
+	c.Assert(ok, Equals, true)
+	c.Assert(filter.Port, Equals, 80)
+	c.Assert(filter.Ingress, Equals, true)
+
+	c.Assert(len(filter.Endpoints), Equals, 0)
+
+	c.Assert(filter.L7Parser, Equals, ParserTypeHTTP)
+	c.Assert(len(filter.L7RulesPerEp), Equals, 1)
 }
