@@ -35,34 +35,6 @@ func (r *rule) String() string {
 	return fmt.Sprintf("%v", r.EndpointSelector)
 }
 
-// addEndpoints adds the provided of endpoints to the list of endpoints which
-// the L4Filter applies. If the list of endpoints provided or the list of endpoints
-// in the filter are empty, then the L4Filter thus applies to all endpoints,
-// and the L4Filter's list of endpoints is set to be empty if needed. Otherwise
-// the list of endpoints which the filter applies to is updated accordingly.
-// Returns whether the L4Filter already selects all endpoints.
-func (policy *L4Filter) addEndpoints(endpoints []api.EndpointSelector) bool {
-
-	if len(policy.Endpoints) == 0 && len(endpoints) > 0 {
-		log.WithFields(logrus.Fields{
-			logfields.EndpointSelector: endpoints,
-			"policy":                   policy,
-		}).Debug("skipping L4 filter as the endpoints are already covered")
-		return true
-	}
-
-	if len(policy.Endpoints) > 0 && len(endpoints) == 0 {
-		log.WithFields(logrus.Fields{
-			logfields.EndpointSelector: endpoints,
-			"policy":                   policy,
-		}).Debug("new L4 filter applies to all endpoints, making the policy more permissive")
-		policy.Endpoints = nil
-	}
-
-	policy.Endpoints = append(policy.Endpoints, endpoints...)
-	return false
-}
-
 // mergeL4IngressPort merges all rules which share the same port & protocol that
 // select a given set of endpoints. It updates the L4Filter mapped to by the specified
 // port and protocol with the contents of the provided PortRule. If the rule
