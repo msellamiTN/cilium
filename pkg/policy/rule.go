@@ -35,13 +35,19 @@ func (r *rule) String() string {
 	return fmt.Sprintf("%v", r.EndpointSelector)
 }
 
+// addEndpoints adds the provided of endpoints to the list of endpoints which
+// the L4Filter applies. If the list of endpoints provided or the list of endpoints
+// in the filter are empty, then the L4Filter thus applies to all endpoints,
+// and the L4Filter's list of endpoints is set to be empty if needed. Otherwise
+// the list of endpoints which the filter applies to is updated accordingly.
+// Returns whether the L4Filter already selects all endpoints.
 func (policy *L4Filter) addEndpoints(endpoints []api.EndpointSelector) bool {
 
 	if len(policy.Endpoints) == 0 && len(endpoints) > 0 {
 		log.WithFields(logrus.Fields{
 			logfields.EndpointSelector: endpoints,
 			"policy":                   policy,
-		}).Debug("skipping L4 filter as the endpoints are already covered.")
+		}).Debug("skipping L4 filter as the endpoints are already covered")
 		return true
 	}
 
@@ -49,7 +55,7 @@ func (policy *L4Filter) addEndpoints(endpoints []api.EndpointSelector) bool {
 		log.WithFields(logrus.Fields{
 			logfields.EndpointSelector: endpoints,
 			"policy":                   policy,
-		}).Debug("new L4 filter applies to all endpoints, making the policy more permissive.")
+		}).Debug("new L4 filter applies to all endpoints, making the policy more permissive")
 		policy.Endpoints = nil
 	}
 
@@ -72,8 +78,15 @@ func mergeL4IngressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r 
 		return 1, nil
 	}
 
+	// If rule selects all endpoints and no L7 rules apply, then remove all
+	// L7-related information from the filter and return.
 	if filter.addEndpoints(endpoints) && r.NumRules() == 0 {
-		// skip this policy as it is already covered and it does not contain L7 rules
+		for k := range filter.L7RulesPerEp {
+			delete(filter.L7RulesPerEp, k)
+		}
+		filter.L7Parser = ParserTypeNone
+		filter.DerivedFromRules = append(filter.DerivedFromRules, ruleLabels)
+		resMap[key] = filter
 		return 1, nil
 	}
 
@@ -93,8 +106,8 @@ func mergeL4IngressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r 
 		return 1, nil
 	}
 
-	// Create a new L4Filter for merging with the filter which is already in
-	// the policy map.
+	// Create a new L4Filter based off of the arguments provided to this function
+	// for merging with the filter which is already in the policy map.
 	l4Filter := CreateL4IngressFilter(endpoints, r, p, proto, ruleLabels)
 	if l4Filter.L7Parser != ParserTypeNone {
 		if filter.L7Parser == ParserTypeNone {
@@ -486,8 +499,15 @@ func mergeL4EgressPort(ctx *SearchContext, endpoints []api.EndpointSelector, r a
 		return 1, nil
 	}
 
+	// If rule selects all endpoints and no L7 rules apply, then remove all
+	// L7-related information from the filter and return.
 	if filter.addEndpoints(endpoints) && r.NumRules() == 0 {
-		// skip this policy as it is already covered and it does not contain L7 rules
+		for k := range filter.L7RulesPerEp {
+			delete(filter.L7RulesPerEp, k)
+		}
+		filter.L7Parser = ParserTypeNone
+		filter.DerivedFromRules = append(filter.DerivedFromRules, ruleLabels)
+		resMap[key] = filter
 		return 1, nil
 	}
 
