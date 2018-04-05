@@ -247,7 +247,7 @@ func (ds *PolicyTestSuite) TestL4Policy(c *C) {
 	expected = NewL4Policy()
 	expected.Ingress["80/TCP"] = L4Filter{
 		Port: 80, Protocol: api.ProtoTCP, U8Proto: 6, Endpoints: nil,
-		L7Parser: "", L7RulesPerEp: L7DataMap{}, Ingress: true,
+		L7Parser: ParserTypeNone, L7RulesPerEp: L7DataMap{}, Ingress: true,
 		DerivedFromRules: labels.LabelArrayList{nil, nil},
 	}
 	expected.Egress["3000/TCP"] = L4Filter{
@@ -331,7 +331,7 @@ func (ds *PolicyTestSuite) TestMergeL4PolicyIngress(c *C) {
 	expected := NewL4Policy()
 	expected.Ingress["80/TCP"] = L4Filter{
 		Port: 80, Protocol: api.ProtoTCP, U8Proto: 6, Endpoints: mergedES,
-		L7Parser: "", L7RulesPerEp: L7DataMap{}, Ingress: true,
+		L7Parser: ParserTypeNone, L7RulesPerEp: L7DataMap{}, Ingress: true,
 		DerivedFromRules: labels.LabelArrayList{nil, nil},
 	}
 
@@ -392,7 +392,7 @@ func (ds *PolicyTestSuite) TestMergeL4PolicyEgress(c *C) {
 	expected := NewL4Policy()
 	expected.Egress["80/TCP"] = L4Filter{
 		Port: 80, Protocol: api.ProtoTCP, U8Proto: 6, Endpoints: mergedES,
-		L7Parser: "", L7RulesPerEp: L7DataMap{}, Ingress: false,
+		L7Parser: ParserTypeNone, L7RulesPerEp: L7DataMap{}, Ingress: false,
 		DerivedFromRules: labels.LabelArrayList{nil, nil},
 	}
 
@@ -459,7 +459,7 @@ func (ds *PolicyTestSuite) TestMergeL7PolicyIngress(c *C) {
 	expected := NewL4Policy()
 	expected.Ingress["80/TCP"] = L4Filter{
 		Port: 80, Protocol: api.ProtoTCP, U8Proto: 6, Endpoints: nil,
-		L7Parser: "", L7RulesPerEp: L7DataMap{}, Ingress: true,
+		L7Parser: ParserTypeNone, L7RulesPerEp: L7DataMap{}, Ingress: true,
 		DerivedFromRules: labels.LabelArrayList{nil, nil, nil},
 	}
 
@@ -673,7 +673,7 @@ func (ds *PolicyTestSuite) TestMergeL7PolicyEgress(c *C) {
 	expected := NewL4Policy()
 	expected.Egress["80/TCP"] = L4Filter{
 		Port: 80, Protocol: api.ProtoTCP, U8Proto: 6, Endpoints: nil,
-		L7Parser: "", L7RulesPerEp: L7DataMap{}, Ingress: false,
+		L7Parser: ParserTypeNone, L7RulesPerEp: L7DataMap{}, Ingress: false,
 		DerivedFromRules: labels.LabelArrayList{nil, nil, nil},
 	}
 
@@ -741,7 +741,7 @@ func (ds *PolicyTestSuite) TestMergeL7PolicyEgress(c *C) {
 	expected = NewL4Policy()
 	expected.Egress["80/TCP"] = L4Filter{
 		Port: 80, Protocol: api.ProtoTCP, U8Proto: 6, Endpoints: nil,
-		L7Parser: "", L7RulesPerEp: L7DataMap{}, Ingress: false,
+		L7Parser: ParserTypeNone, L7RulesPerEp: L7DataMap{}, Ingress: false,
 		DerivedFromRules: labels.LabelArrayList{nil, nil, nil},
 	}
 
@@ -1696,7 +1696,7 @@ func (ds *PolicyTestSuite) TestL4WildcardMerge(c *C) {
 
 	c.Assert(len(filter.Endpoints), Equals, 0)
 
-	c.Assert(filter.L7Parser, Equals, L7ParserType(""))
+	c.Assert(filter.L7Parser, Equals, ParserTypeNone)
 	c.Assert(len(filter.L7RulesPerEp), Equals, 0)
 
 	// Test the reverse order as well; ensure that we check both conditions
@@ -1745,6 +1745,6 @@ func (ds *PolicyTestSuite) TestL4WildcardMerge(c *C) {
 
 	c.Assert(len(filter.Endpoints), Equals, 0)
 
-	c.Assert(filter.L7Parser, Equals, L7ParserType(""))
+	c.Assert(filter.L7Parser, Equals, ParserTypeNone)
 	c.Assert(len(filter.L7RulesPerEp), Equals, 0)
 }

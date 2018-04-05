@@ -72,6 +72,8 @@ func (l7 L7DataMap) MarshalJSON() ([]byte, error) {
 type L7ParserType string
 
 const (
+	// ParserTypeNone represents the case where no parser type is provided.
+	ParserTypeNone L7ParserType = ""
 	// ParserTypeHTTP specifies a HTTP parser type
 	ParserTypeHTTP L7ParserType = "http"
 	// ParserTypeKafka specifies a Kafka parser type
@@ -89,7 +91,7 @@ type L4Filter struct {
 	// Endpoints is empty, then it selects all endpoints.
 	Endpoints []api.EndpointSelector `json:"-"`
 	// L7Parser specifies the L7 protocol parser (optional). If specified as
-	// an empty string, then means that no L7 forwarding is performed to the proxy.
+	// an empty string, then means that no L7 proxy redirect is performed.
 	L7Parser L7ParserType `json:"-"`
 	// L7RulesPerEp is a list of L7 rules per endpoint passed to the L7 proxy (optional)
 	L7RulesPerEp L7DataMap `json:"l7-rules,omitempty"`
@@ -216,7 +218,7 @@ func CreateL4EgressFilter(toEndpoints []api.EndpointSelector, rule api.PortRule,
 
 // IsRedirect returns true if the L4 filter contains a port redirection
 func (l4 *L4Filter) IsRedirect() bool {
-	return l4.L7Parser != ""
+	return l4.L7Parser != ParserTypeNone
 }
 
 // MarshalIndent returns the `L4Filter` in indented JSON string.
